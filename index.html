@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SWEETER16 Processor Simulator</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="i18n/en.js"></script>
+  <script src="i18n/de.js"></script>
+  <script src="i18n/index.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sticky Header -->
+    <header class="header">
+      <div class="header-left">
+        <button type="button" class="hamburger" id="hamburger" aria-label="" data-i18n-attr="aria-label:aria.hamburger" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="header-logos">
+          <a href="https://fias.institute/en/" target="_blank" rel="noopener" class="logo-link" aria-label="" data-i18n-attr="aria-label:aria.fias">
+            <img src="fias_logo.png" alt="FIAS" class="logo logo-fias">
+          </a>
+        </div>
+      </div>
+      <h1 class="app-title" data-i18n="app.title">SWEETER16 Processor Simulator</h1>
+      <div class="header-right">
+        <div class="lang-toggle" role="group" aria-label="" data-i18n-attr="aria-label:aria.lang">
+          <button type="button" class="lang-btn active" id="langEN" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" class="lang-btn" id="langDE" data-lang="de" aria-pressed="false">DE</button>
+        </div>
+        <a href="https://www.uni-frankfurt.de/" target="_blank" rel="noopener" class="logo-link logo-goethe-right" aria-label="" data-i18n-attr="aria-label:aria.goethe">
+          <img src="gu_logo.webp" alt="Goethe University" class="logo logo-goethe">
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Left Panel: Navigation & Control -->
+      <aside class="left-panel mode-code" id="leftColumn">
+        <div class="panel-section code-section">
+          <div class="code-tabs">
+            <button type="button" class="code-tab active" id="tabOriginalCode" data-i18n="tab.originalCode">Original Code</button>
+            <button type="button" class="code-tab" id="tabDealiasCode" data-i18n="tab.dealiasCode">De-alias Code</button>
+          </div>
+          <div class="code-panels">
+            <div class="code-panel" id="inputOriginalPanel">
+              <textarea id="InputASM" rows="12" placeholder="" data-i18n-placeholder="placeholder.asm" spellcheck="false"></textarea>
+            </div>
+            <div class="code-panel hidden" id="inputDealiasPanel">
+              <textarea id="DealiasASM" rows="12" readonly placeholder="" data-i18n-placeholder="placeholder.dealias" spellcheck="false"></textarea>
+            </div>
+          </div>
+          <div class="source-line-indicator hidden" id="sourceLineIndicator" aria-live="polite"></div>
+        </div>
+
+        <div class="actions-block">
+          <input type="file" id="loadASMFile" accept=".s16,.asm,.txt" hidden>
+          <button type="button" class="btn btn-secondary" id="LoadASMBtn" data-i18n="btn.loadASM">Load ASM</button>
+          <button type="button" class="btn btn-primary" id="Convert" data-i18n="btn.convert">Convert</button>
+          <button type="button" class="btn btn-success" id="RUN_NEXT" style="display:none" data-i18n="btn.runNext">Run Next</button>
+          <button type="button" class="btn btn-success" id="RUN_ALL" style="display:none" data-i18n="btn.runAll">Run All</button>
+          <button type="button" class="btn btn-neutral" id="RESET" style="display:none" data-i18n="btn.reset">Reset</button>
+        </div>
+
+        <div class="speed-block">
+          <span class="speed-label" data-i18n="speed.label">Speed</span>
+          <div class="speed-buttons">
+            <button type="button" class="speed-btn" data-delay="100" data-steps="1" aria-pressed="false">1×</button>
+            <button type="button" class="speed-btn active" data-delay="16" data-steps="5" aria-pressed="true">5×</button>
+            <button type="button" class="speed-btn" data-delay="8" data-steps="10" aria-pressed="false">10×</button>
+          </div>
+        </div>
+
+        <div class="memory-import-block">
+          <input type="file" id="importMemoryFile" accept=".txt" hidden>
+          <button type="button" class="btn btn-ghost" id="importMemoryBtn" data-i18n="btn.importMemory">Import Memory</button>
+          <button type="button" class="btn btn-ghost" id="exportMemoryBtn" data-i18n="btn.exportMemory">Export Memory</button>
+        </div>
+
+        <div class="user-memory-input">
+          <label for="dynamicMemoryContentsForUser" class="sr-only">Address:Value (hex)</label>
+          <input type="text" id="dynamicMemoryContentsForUser" placeholder="" data-i18n-placeholder="placeholder.memoryInput" spellcheck="false">
+          <button type="button" class="btn btn-secondary" id="addMemoryContent" data-i18n="btn.add">Add</button>
+        </div>
+      </aside>
+      <div class="main-resize-handle" id="mainResizeHandle" aria-label="" data-i18n-attr="aria-label:aria.resizeMain"></div>
+      <div class="overlay-backdrop" id="overlayBackdrop" aria-hidden="true"></div>
+      <!-- Right Panel: Main Viewer -->
+      <main class="right-panel">
+        <div class="viewer-header">
+          <div class="viewer-tabs viewer-tabs-left" id="tabButtons">
+            <button type="button" class="viewer-tab active" id="tabInMemoryData" data-i18n="tab.inMemoryData">In Memory (Data)</button>
+            <button type="button" class="viewer-tab" id="tabMachineCode" data-i18n="tab.machineCode">Machine Code</button>
+            <div class="machine-code-actions" id="machineCodeActions" style="display:none">
+              <button type="button" class="btn btn-ghost" id="copyMachineCode" data-i18n="btn.copy">Copy</button>
+              <button type="button" class="btn btn-ghost" id="downloadMachineCode" data-i18n="btn.download">Download</button>
+            </div>
+          </div>
+          <div class="viewer-tabs viewer-tabs-right">
+            <button type="button" class="viewer-tab viewer-tab-programs" id="tabPrograms" data-i18n="tab.samplePrograms">Sample Programs</button>
+            <button type="button" class="viewer-tab viewer-tab-instructions" id="tabInstructions" data-i18n="tab.instructionSet">Instruction Set</button>
+            <button type="button" class="viewer-tab viewer-tab-aliases" id="tabAliases" data-i18n="tab.aliases">Aliases</button>
+            <button type="button" class="viewer-tab viewer-tab-manual" id="tabManual" data-i18n="tab.userManual">User Manual</button>
+          </div>
+        </div>
+
+        <div class="program-display-card viewer-program-area" id="viewerProgramArea">
+          <div id="InMemoryProgram" class="in-memory-program"></div>
+        </div>
+
+        <div class="viewer-info-area hidden" id="viewerInfoArea">
+          <div class="tab-content-wrap">
+            <div id="tabContent" class="tab-content"></div>
+          </div>
+        </div>
+
+        <div class="resize-handle" id="viewerResizeHandle" aria-label="" data-i18n-attr="aria-label:aria.resizeViewer"></div>
+
+        <div class="viewer-bottom-section" id="viewerBottomSection">
+        <div class="simulator-status">
+          <div class="status-row">
+            <span class="status-label" data-i18n="status.ip">IP</span>
+            <span class="status-value" id="ipDisplay">0x0000</span>
+          </div>
+          <div class="flags-row">
+            <span class="flag-item"><span class="flag-label" data-i18n="flag.cf">CF (Carry Flag)</span><span id="carryFlagDisplay">0</span></span>
+            <span class="flag-item"><span class="flag-label" data-i18n="flag.zf">ZF (Zero Flag)</span><span id="zeroFlagDisplay">0</span></span>
+            <span class="flag-item"><span class="flag-label" data-i18n="flag.of">OF (Overflow Flag)</span><span id="overflowFlagDisplay">0</span></span>
+            <span class="flag-item"><span class="flag-label" data-i18n="flag.nf">NF (Negative Flag)</span><span id="negativeFlagDisplay">0</span></span>
+          </div>
+        </div>
+
+        <div class="register-display">
+          <div class="registers-grid" aria-label="Registers R0 through R7">
+            <div id="register-R0" class="register-cell">R0: <span>0x0000</span> (0)</div>
+            <div id="register-R1" class="register-cell">R1: <span>0x0001</span> (1)</div>
+            <div id="register-R2" class="register-cell">R2: <span>0x0000</span> (0)</div>
+            <div id="register-R3" class="register-cell">R3: <span>0x0000</span> (0)</div>
+            <div id="register-R4" class="register-cell">R4: <span>0x0000</span> (0)</div>
+            <div id="register-R5" class="register-cell">R5: <span>0x0000</span> (0)</div>
+            <div id="register-R6" class="register-cell">R6: <span>0x0000</span> (0)</div>
+            <div id="register-R7" class="register-cell">R7: <span>0x0000</span> (0)</div>
+          </div>
+        </div>
+
+        <div class="user-memory-card">
+          <h3 class="card-title" data-i18n="card.userMemory">User Memory</h3>
+          <div id="dynamicmemorydisplay" class="dynamic-memory-display"></div>
+        </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Modal placeholder (Reset dialog is created by JS) -->
+
+  <script>
+    (function() {
+      document.addEventListener("DOMContentLoaded", function() {
+        var btnEN = document.getElementById("langEN");
+        var btnDE = document.getElementById("langDE");
+        if (btnEN) btnEN.addEventListener("click", function() { window.setLanguage("en"); });
+        if (btnDE) btnDE.addEventListener("click", function() { window.setLanguage("de"); });
+        var lang = window.getCurrentLang ? window.getCurrentLang() : "en";
+        if (btnEN) { btnEN.classList.toggle("active", lang === "en"); btnEN.setAttribute("aria-pressed", lang === "en"); }
+        if (btnDE) { btnDE.classList.toggle("active", lang === "de"); btnDE.setAttribute("aria-pressed", lang === "de"); }
+        if (typeof window.applyTranslations === "function") window.applyTranslations(lang);
+
+        var hamburger = document.getElementById("hamburger");
+        var leftPanel = document.getElementById("leftColumn");
+        var overlay = document.getElementById("overlayBackdrop");
+        if (hamburger && leftPanel) {
+          hamburger.addEventListener("click", function() {
+            var isOpen = leftPanel.classList.toggle("is-open");
+            hamburger.setAttribute("aria-expanded", isOpen);
+            if (overlay) { overlay.setAttribute("aria-hidden", !isOpen); }
+          });
+        }
+        if (overlay && leftPanel) {
+          overlay.addEventListener("click", function() {
+            leftPanel.classList.remove("is-open");
+            if (hamburger) hamburger.setAttribute("aria-expanded", "false");
+            overlay.setAttribute("aria-hidden", "true");
+          });
+        }
+        var mainResizeHandle = document.getElementById("mainResizeHandle");
+        if (mainResizeHandle && leftPanel) {
+          var startX = 0, startW = 0;
+          mainResizeHandle.addEventListener("mousedown", function(e) {
+            e.preventDefault();
+            startX = e.clientX;
+            startW = leftPanel.offsetWidth;
+            function onMouseMove(e) {
+              var dx = e.clientX - startX;
+              var newW = Math.max(260, Math.min(window.innerWidth * 0.6, startW + dx));
+              leftPanel.style.width = newW + "px";
+            }
+            function onMouseUp() {
+              document.removeEventListener("mousemove", onMouseMove);
+              document.removeEventListener("mouseup", onMouseUp);
+              document.body.style.cursor = "";
+              document.body.style.userSelect = "";
+            }
+            document.body.style.cursor = "ew-resize";
+            document.body.style.userSelect = "none";
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+          });
+        }
+        var resizeHandle = document.getElementById("viewerResizeHandle");
+        var bottomSection = document.getElementById("viewerBottomSection");
+        if (resizeHandle && bottomSection) {
+          var startY = 0, startH = 0;
+          resizeHandle.addEventListener("mousedown", function(e) {
+            e.preventDefault();
+            startY = e.clientY;
+            startH = bottomSection.offsetHeight;
+            function onMouseMove(e) {
+              var dy = e.clientY - startY;
+              var newH = Math.max(120, Math.min(window.innerHeight * 0.7, startH - dy));
+              bottomSection.style.height = newH + "px";
+            }
+            function onMouseUp() {
+              document.removeEventListener("mousemove", onMouseMove);
+              document.removeEventListener("mouseup", onMouseUp);
+              document.body.style.cursor = "";
+              document.body.style.userSelect = "";
+            }
+            document.body.style.cursor = "ns-resize";
+            document.body.style.userSelect = "none";
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
+          });
+        }
+      });
+    })();
+  </script>
+  <script src="AliasResolver.js"></script>
+  <script src="assembler.js"></script>
+  <script src="Sample_program.js"></script>
+  <script src="Sample_instructions.js"></script>
+  <script src="Sample_aliases.js"></script>
+  <script src="UserManual.js"></script>
+  <script src="simulator.js"></script>
+  <script src="style.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
