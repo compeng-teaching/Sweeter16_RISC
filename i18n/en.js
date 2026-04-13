@@ -1,7 +1,7 @@
 /* English translations */
 (function(global) {
   global.I18N_EN = {
-    app: { title: "SWEETER16 Processor Simulator" },
+    app: { title: "SWEET16 Processor Simulator" },
     tab: {
       originalCode: "Original Code",
       dealiasCode: "De-alias Code",
@@ -124,10 +124,10 @@
       "General": "General"
     },
     aliasDesc: {},
-    manual: `# SWEETER16 Processor Simulator - User Manual
+    manual: `# SWEET16 Processor Simulator - User Manual
 
 ## Introduction
-The SWEETER16 Processor Simulator is a tool designed to help users understand and simulate the functionality of a 16-bit processor. It allows you to input assembly code, execute instructions step-by-step, and view the internal state of registers, flags, and memory in real time.
+The SWEET16 Processor Simulator is a tool designed to help users understand and simulate the functionality of a 16-bit processor. It allows you to input assembly code, execute instructions step-by-step, and view the internal state of registers, flags, and memory in real time.
 
 ## Key Features
 1. Input Assembly Code: Paste your assembly code into the provided text area.

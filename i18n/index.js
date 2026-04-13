@@ -1,5 +1,5 @@
 /**
- * i18n — localization for SWEETER16 Processor Simulator
+ * i18n — localization for SWEET16 Processor Simulator
  * Load after en.js and de.js
  */
 (function(global) {

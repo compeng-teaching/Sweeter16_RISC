@@ -1,7 +1,7 @@
 /* German translations */
 (function(global) {
   global.I18N_DE = {
-    app: { title: "SWEETER16 Prozessorsimulator" },
+    app: { title: "SWEET16 Prozessorsimulator" },
     tab: {
       originalCode: "Originalcode",
       dealiasCode: "De-Alias-Code",
@@ -141,10 +141,10 @@
       SHL: "R6 um 1 nach links schieben (mit 2 multiplizieren). Zuerst CLR_C verwenden.",
       SHR: "R6 um 1 nach rechts schieben (durch 2 teilen, vorzeichenlos). Zuerst CLR_C verwenden."
     },
-    manual: `# SWEETER16 Prozessorsimulator - Benutzerhandbuch
+    manual: `# SWEET16 Prozessorsimulator - Benutzerhandbuch
 
 ## Einführung
-Der SWEETER16 Prozessorsimulator ist ein Hilfsmittel zum Verstehen und Simulieren eines 16-Bit-Prozessors. Sie können Assemblycode eingeben, Befehle einzeln ausführen und Register, Flags sowie Speicher in Echtzeit beobachten.
+Der SWEET16 Prozessorsimulator ist ein Hilfsmittel zum Verstehen und Simulieren eines 16-Bit-Prozessors. Sie können Assemblycode eingeben, Befehle einzeln ausführen und Register, Flags sowie Speicher in Echtzeit beobachten.
 
 ## Hauptfunktionen
 1. Assemblycode eingeben: Fügen Sie Ihren Assemblycode in den bereitgestellten Textbereich ein.
