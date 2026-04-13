@@ -170,7 +170,7 @@ HLT
 
 ; ── Alias Definitions ────────────────────────────────────
 #DEF CLR_C   = ROR R0;
-#DEF SET_C   = SBB R0,R0,R1;
+#DEF SET_C   = ROR R1;
 #DEF SET_Z   = SBB R0,R0,R0;
 #DEF CLR_ZNV = OR R1,R1,R1;
 #DEF SET_N   = NOT R0,R0;
@@ -193,7 +193,7 @@ STO R2, 0x0000          ; [0x00] = 0x0000 ✓
 
 ; ── Test SET_C ───────────────────────────────────────────
 CLR_C                   ; CF = 0  (setup)
-SET_C                   ; CF = 1  <-- alias: SBB R0,R0,R1 (no user reg touched)
+SET_C                   ; CF = 1  <-- alias: ROR R1 (R1 is constant 1)
 ADC R2, R0, R0          ; R2 = 0 + 0 + CF = 1
 STO R2, 0x0001          ; [0x01] = 0x0001 ✓
 

@@ -130,7 +130,9 @@ function loadInstructionSet() {
   const sorted = [...data].sort((a, b) => (a?.name ?? "").localeCompare((b?.name ?? ""), undefined, { sensitivity: "base" }));
   const escapeAttr = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
   const desc = (inst) => t(`instrDesc.${inst.name}`, {}) || inst.description;
-  tabContent.innerHTML = `<div class="instruction-set-content">${sorted.map(instruction => `
+  tabContent.innerHTML = `<div class="instruction-set-content">
+    <p class="instruction-legend"><strong>Notation:</strong> Rs = Source register, Rd = Destination register</p>
+    ${sorted.map(instruction => `
     <div class="instr-block">
       <h3>${instruction.name}</h3>
       <p><strong>${t("instr.syntax")}:</strong> <code>${instruction.syntax}</code></p>
@@ -138,7 +140,6 @@ function loadInstructionSet() {
       <pre><code>${instruction.example}</code></pre>
       ${instruction.useLine != null ? `<button type="button" class="use-instr-btn" data-use-line="${escapeAttr(instruction.useLine)}">${t("instr.use")}</button>` : ""}
     </div>
-    <hr>
   `).join("")}</div>`;
 }
 
@@ -178,7 +179,6 @@ function loadAliases() {
               data-use-line="${escAttr(a.def + "\n" + a.use)}">${t("instr.use")}</button>
           </div>
         </div>
-        <hr>
       `).join("")}
     </div>
   `).join("");
@@ -307,6 +307,7 @@ function showResetDialog({ onKeep, onClear }) {
 --------------------------------*/
 function encodeProgramToHex(program) {
   if (!program || program.length === 0) return "";
+  const header = "v2.0 raw";
   const toHex = (w) => "0x" + (w & 0xffff).toString(16).toUpperCase().padStart(4, "0");
   const OP5_ALU3 = { XOR: 0b00001, OR: 0b00010, AND: 0b00011, SBB: 0b10110, ADC: 0b10111 };
   const OP5_ROTN = { NOT: 0b00000, ROL: 0b10100, ROR: 0b10101 };
@@ -407,7 +408,7 @@ function encodeProgramToHex(program) {
       out.push(`# Error: ${e.message}`);
     }
   }
-  return out.join("\n");
+  return [header, ...out].join("\n");
 }
 
 /* -----------------------------
@@ -435,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabContent      = $("tabContent");
   const viewerProgramArea = $("viewerProgramArea");
   const viewerInfoArea    = $("viewerInfoArea");
-  const allViewerTabs   = [$("tabInMemoryData"), $("tabMachineCode"), tabPrograms, tabInstructions, tabAliases, tabManual];
+  const allViewerTabs   = [$("tabInMemoryData"), tabPrograms, tabInstructions, tabAliases, tabManual];
 
   // Restore ASM if preserved
   if (sessionStorage.getItem(S16_KEEP) === "1") {
@@ -638,49 +639,43 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dealiasASMEl) dealiasASMEl.value = resolved;
   });
 
-  // In memory Data / Machine Code tabs (above InMemoryProgram)
+  // Instruction memory tab (above InMemoryProgram)
   const tabInMemoryData = $("tabInMemoryData");
-  const tabMachineCode  = $("tabMachineCode");
   const inMemoryProgramEl = $("InMemoryProgram");
   const machineCodeActions = $("machineCodeActions");
+
+  function getMachineCodeColumnText() {
+    const machineCells = Array.from(document.querySelectorAll("#InMemoryProgram .memory-program-machine"));
+    const codes = machineCells
+      .map(el => (el.textContent || "").trim())
+      .filter(code => code && code !== "--");
+    if (codes.length === 0) return "";
+    return ["v2.0 raw", ...codes].join("\n");
+  }
 
   tabInMemoryData?.addEventListener("click", () => {
     setViewerTab(tabInMemoryData);
     showProgramArea();
     window.memoryViewTab = "data";
-    if (machineCodeActions) machineCodeActions.style.display = "none";
+    if (machineCodeActions) machineCodeActions.style.display = "flex";
     if (typeof updateMemoryDisplay === "function") updateMemoryDisplay();
     else if (inMemoryProgramEl) inMemoryProgramEl.textContent = window.currentProgramDisplayText || t("msg.noProgramInMemory");
   });
-  tabMachineCode?.addEventListener("click", () => {
-    setViewerTab(tabMachineCode);
-    showProgramArea();
-    window.memoryViewTab = "machine";
-    if (machineCodeActions) machineCodeActions.style.display = "flex";
-    const getProgram = typeof window.getProgram === "function" ? window.getProgram : () => [];
-    const program = getProgram();
-    const hexText = encodeProgramToHex(program);
-    if (inMemoryProgramEl) inMemoryProgramEl.textContent = hexText || t("msg.noProgramInMemory");
-  });
 
   function refreshProgramDisplay() {
-    if (tabMachineCode?.classList.contains("active")) {
-      window.memoryViewTab = "machine";
-      if (machineCodeActions) machineCodeActions.style.display = "flex";
-      const program = typeof window.getProgram === "function" ? window.getProgram() : [];
-      const hexText = encodeProgramToHex(program);
-      if (inMemoryProgramEl) inMemoryProgramEl.textContent = hexText || t("msg.noProgramInMemory");
-    } else {
-      window.memoryViewTab = "data";
-      if (machineCodeActions) machineCodeActions.style.display = "none";
-      if (typeof updateMemoryDisplay === "function") updateMemoryDisplay();
-      else if (inMemoryProgramEl) inMemoryProgramEl.textContent = window.currentProgramDisplayText || t("msg.noProgramInMemory");
-    }
+    window.memoryViewTab = "data";
+    if (machineCodeActions) machineCodeActions.style.display = "flex";
+    if (typeof updateMemoryDisplay === "function") updateMemoryDisplay();
+    else if (inMemoryProgramEl) inMemoryProgramEl.textContent = window.currentProgramDisplayText || t("msg.noProgramInMemory");
   }
 
-  // Copy Machine Code
+  // Copy Machine Code (second column only)
   $("copyMachineCode")?.addEventListener("click", () => {
-    const text = inMemoryProgramEl?.textContent || "";
+    const text = getMachineCodeColumnText();
+    if (!text) {
+      window.showToast?.(t("msg.noProgramInMemory"));
+      return;
+    }
     navigator.clipboard.writeText(text).then(() => {
       window.showToast?.(t("msg.machineCodeCopied"));
     }).catch(() => {
@@ -688,12 +683,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Download Machine Code
+  // Download Machine Code (second column only)
   $("downloadMachineCode")?.addEventListener("click", () => {
+    const text = getMachineCodeColumnText();
+    if (!text) {
+      window.showToast?.(t("msg.noProgramInMemory"));
+      return;
+    }
     const raw = prompt("Enter filename (without extension):", "MachineCode");
     if (raw === null) return; // cancelled
     const filename = (raw.trim() || "MachineCode") + ".hex";
-    const text = inMemoryProgramEl?.textContent || "";
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

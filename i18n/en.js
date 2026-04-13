@@ -5,7 +5,7 @@
     tab: {
       originalCode: "Original Code",
       dealiasCode: "De-alias Code",
-      inMemoryData: "In Memory (Data)",
+      inMemoryData: "Instruction Memory",
       machineCode: "Machine Code",
       samplePrograms: "Sample Programs",
       instructionSet: "Instruction Set",
@@ -19,8 +19,8 @@
     },
     btn: {
       loadASM: "Load ASM",
-      convert: "Convert",
-      converted: " Converted ",
+      convert: "Code Assemble",
+      converted: " Code Assembled ",
       runNext: "Run Next",
       runAll: "Run All",
       reRunNext: "Re-Run Next",
@@ -31,6 +31,7 @@
       importMemory: "Import Memory",
       exportMemory: "Export Memory",
       add: "Add",
+      set: "Set",
       copy: "Copy",
       download: "Download"
     },
@@ -42,7 +43,7 @@
       of: "OF (Overflow Flag)",
       nf: "NF (Negative Flag)"
     },
-    card: { userMemory: "User Memory" },
+    card: { userMemory: "Data Memory" },
     instr: {
       syntax: "Syntax",
       description: "Description",

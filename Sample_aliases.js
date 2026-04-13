@@ -17,13 +17,22 @@ window.sampleAliases = [
     },
     {
         name:       "SET_C",
-        def:        "#DEF SET_C = SBB R0,R0,R1;",
+        def:        "#DEF SET_C = ROR R1;",
         use:        "SET_C",
+        flags:      "CF → 1 (ZF/NF/VF depend on previous CF)",
+        description:
+            "Set CF to 1 using ROR on R1 (R1 is constant 0x0001, so bit0 always rotates into CF as 1). " +
+            "Use before ADC when you explicitly want +1 carry-in. R1 write-back is discarded.",
+        category:   "Flag Management"
+    },
+    {
+        name:       "SET_Borrow",
+        def:        "#DEF SET_Borrow = SBB R0,R0,R1;",
+        use:        "SET_Borrow",
         flags:      "CF → 1,  NF → 1,  ZF → 0",
         description:
-            "Set Carry Flag. Computes 0 − 1 − CF_prev = borrow, so CF = 1. " +
-            "Works regardless of the previous carry value. " +
-            "Write to R0 is discarded (R0 stays 0). No user register is touched.",
+            "Set borrow flag state for subtraction context (CF = 1 in this simulator). " +
+            "Use before SBB when you intentionally want to subtract the extra borrow 1.",
         category:   "Flag Management"
     },
     {

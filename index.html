@@ -73,17 +73,6 @@
           </div>
         </div>
 
-        <div class="memory-import-block">
-          <input type="file" id="importMemoryFile" accept=".txt" hidden>
-          <button type="button" class="btn btn-ghost" id="importMemoryBtn" data-i18n="btn.importMemory">Import Memory</button>
-          <button type="button" class="btn btn-ghost" id="exportMemoryBtn" data-i18n="btn.exportMemory">Export Memory</button>
-        </div>
-
-        <div class="user-memory-input">
-          <label for="dynamicMemoryContentsForUser" class="sr-only">Address:Value (hex)</label>
-          <input type="text" id="dynamicMemoryContentsForUser" placeholder="" data-i18n-placeholder="placeholder.memoryInput" spellcheck="false">
-          <button type="button" class="btn btn-secondary" id="addMemoryContent" data-i18n="btn.add">Add</button>
-        </div>
       </aside>
       <div class="main-resize-handle" id="mainResizeHandle" aria-label="" data-i18n-attr="aria-label:aria.resizeMain"></div>
       <div class="overlay-backdrop" id="overlayBackdrop" aria-hidden="true"></div>
@@ -91,9 +80,8 @@
       <main class="right-panel">
         <div class="viewer-header">
           <div class="viewer-tabs viewer-tabs-left" id="tabButtons">
-            <button type="button" class="viewer-tab active" id="tabInMemoryData" data-i18n="tab.inMemoryData">In Memory (Data)</button>
-            <button type="button" class="viewer-tab" id="tabMachineCode" data-i18n="tab.machineCode">Machine Code</button>
-            <div class="machine-code-actions" id="machineCodeActions" style="display:none">
+            <button type="button" class="viewer-tab active" id="tabInMemoryData" data-i18n="tab.inMemoryData">Instruction Memory</button>
+            <div class="machine-code-actions" id="machineCodeActions">
               <button type="button" class="btn btn-ghost" id="copyMachineCode" data-i18n="btn.copy">Copy</button>
               <button type="button" class="btn btn-ghost" id="downloadMachineCode" data-i18n="btn.download">Download</button>
             </div>
@@ -146,8 +134,26 @@
         </div>
 
         <div class="user-memory-card">
-          <h3 class="card-title" data-i18n="card.userMemory">User Memory</h3>
-          <div id="dynamicmemorydisplay" class="dynamic-memory-display"></div>
+          <h3 class="card-title" data-i18n="card.userMemory">Data Memory</h3>
+          <div class="data-memory-layout">
+            <div id="dynamicmemorydisplay" class="dynamic-memory-display"></div>
+            <div class="data-memory-controls">
+              <input type="file" id="importMemoryFile" accept=".txt" hidden>
+              <div class="memory-import-block">
+                <button type="button" class="btn btn-ghost" id="importMemoryBtn" data-i18n="btn.importMemory">Import Memory</button>
+                <button type="button" class="btn btn-ghost" id="exportMemoryBtn" data-i18n="btn.exportMemory">Export Memory</button>
+              </div>
+              <div class="user-memory-input">
+                <label for="dynamicMemoryContentsForUser">Address:Value (hex)</label>
+                <input type="text" id="dynamicMemoryContentsForUser" placeholder="" data-i18n-placeholder="placeholder.memoryInput" spellcheck="false">
+                <button type="button" class="btn btn-secondary" id="addMemoryContent" data-i18n="btn.set">Set</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="developer-details" aria-label="Developer details">
+          Developed by Dr. Gautam Dange ·
+          <a href="mailto:dange@fias.uni-frankfurt.de">dange@fias.uni-frankfurt.de</a>
         </div>
         </div>
       </main>
@@ -215,6 +221,25 @@
         var resizeHandle = document.getElementById("viewerResizeHandle");
         var bottomSection = document.getElementById("viewerBottomSection");
         if (resizeHandle && bottomSection) {
+          var simStatus = bottomSection.querySelector(".simulator-status");
+          var developerDetails = bottomSection.querySelector(".developer-details");
+          function getBottomSectionMinHeight() {
+            var statusH = simStatus ? simStatus.offsetHeight : 0;
+            var developerH = developerDetails ? developerDetails.offsetHeight : 0;
+            var registerMin = 70;
+            var userMemoryMin = 70;
+            var gaps = 36; // 3 gaps * 12px (0.75rem)
+            var buffer = 12; // keep small safety margin
+            return statusH + developerH + registerMin + userMemoryMin + gaps + buffer;
+          }
+          function clampBottomSectionHeight() {
+            var minH = getBottomSectionMinHeight();
+            bottomSection.style.minHeight = minH + "px";
+            var currentH = bottomSection.offsetHeight;
+            if (currentH < minH) bottomSection.style.height = minH + "px";
+          }
+          clampBottomSectionHeight();
+          window.addEventListener("resize", clampBottomSectionHeight);
           var startY = 0, startH = 0;
           resizeHandle.addEventListener("mousedown", function(e) {
             e.preventDefault();
@@ -222,7 +247,8 @@
             startH = bottomSection.offsetHeight;
             function onMouseMove(e) {
               var dy = e.clientY - startY;
-              var newH = Math.max(120, Math.min(window.innerHeight * 0.7, startH - dy));
+              var minH = getBottomSectionMinHeight();
+              var newH = Math.max(minH, Math.min(window.innerHeight * 0.7, startH - dy));
               bottomSection.style.height = newH + "px";
             }
             function onMouseUp() {

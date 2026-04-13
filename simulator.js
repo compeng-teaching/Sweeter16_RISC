@@ -1,4 +1,5 @@
 const userMemoryMap = {};
+const explicitUserMemoryAddresses = new Set();
 const _t = (key, params) => (typeof window.t === "function" ? window.t(key, params) : key);
 
 //MEMORY - ASM PROGRAM - IP 
@@ -29,14 +30,17 @@ window.getProgram = function () { return program; };
 
 /** Export dynamic memory to text: one line per address:value (hex), same format as tool input. */
 window.exportDynamicMemory = function () {
-    const lines = [];
+    let lastUsed = 0;
     for (let i = USR_MEMORY_START; i < USR_MEMORY_END; i++) {
-        const v = UserMemory[i];
-        if (v !== 0 && v !== undefined) {
-            const a = i.toString(16).toUpperCase();
-            const h = (v & 0xFFFF).toString(16).toUpperCase();
-            lines.push(a + ':' + h);
-        }
+        if ((UserMemory[i] & 0xFFFF) !== 0) lastUsed = i;
+    }
+
+    const lines = [];
+    for (let i = USR_MEMORY_START; i <= lastUsed; i++) {
+        const v = UserMemory[i] & 0xFFFF;
+        const a = i.toString(16).toUpperCase().padStart(4, '0');
+        const h = v.toString(16).toUpperCase().padStart(4, '0');
+        lines.push(a + ':' + h);
     }
     const text = lines.length ? lines.join('\n') : '';
     const blob = new Blob([text], { type: 'text/plain' });
@@ -63,6 +67,7 @@ window.importDynamicMemoryFromText = function (text) {
         const val = parseInt(valStr, 16) & 0xFFFF;
         if (isNaN(addr) || isNaN(val) || addr < USR_MEMORY_START || addr >= USR_MEMORY_END) return;
         UserMemory[addr] = val;
+        explicitUserMemoryAddresses.add(addr);
         updateUserMemoryDisplay(addr);
         count++;
     });
@@ -87,7 +92,10 @@ addMemoryButton.addEventListener('click', () => {
         return;
     }
 
-    const [address, content] = inputValue.split(':').map(str => str.trim());
+    const [addressRaw, contentRaw] = inputValue.split(':').map(str => str.trim());
+    const normalizeHex = (s) => String(s || "").replace(/^0x/i, "");
+    const address = normalizeHex(addressRaw);
+    const content = normalizeHex(contentRaw);
     if (!address.match(/^[0-9A-Fa-f]+$/) || !content.match(/^[0-9A-Fa-f]+$/)) {
         alert(_t("msg.invalidFormat"));
         return;
@@ -102,6 +110,7 @@ addMemoryButton.addEventListener('click', () => {
     }
 
     UserMemory[memoryAddress] = memoryContent;
+    explicitUserMemoryAddresses.add(memoryAddress);
     updateUserMemoryDisplay(memoryAddress);
     alert(_t("msg.memoryUpdated", { addr: memoryAddress.toString(16).toUpperCase(), val: memoryContent.toString(16).toUpperCase(), dec: memoryContent }));
 });
@@ -116,58 +125,43 @@ function updateUserMemoryDisplay(updatedAddress) {
         return;
     }
 
-    // Log the incoming `updatedAddress` value
-    console.log("🔍 Debug: updateUserMemoryDisplay called with updatedAddress =", updatedAddress);
-
-    // Check if `updatedAddress` is valid
-    if (typeof updatedAddress === 'undefined' || updatedAddress === null) {
-        console.error("❌ Error: updatedAddress is undefined or null. Function execution stopped.");
-        return;
-    }
-
-    // Ensure `updatedAddress` is a valid number before converting
     const safeAddress = Number(updatedAddress);
-    if (isNaN(safeAddress) || safeAddress < 0) {
-        console.error("❌ Error: updatedAddress is invalid. Received:", updatedAddress);
-        return;
+    if (isNaN(safeAddress) || safeAddress < 0) return;
+
+    let lastUsed = 0;
+    for (let i = USR_MEMORY_START; i < USR_MEMORY_END; i++) {
+        if ((UserMemory[i] & 0xFFFF) !== 0) lastUsed = i;
     }
 
-    // Now it's safe to convert to hex
-    const hexAddress = safeAddress.toString(16).padStart(4, '0').toUpperCase();
-    console.log("✅ Debug: Converted hexAddress =", hexAddress);
+    const safeVisibleAddress = Math.max(0, safeAddress);
+    const lastVisible = Math.max(lastUsed, safeVisibleAddress);
 
-    // Check if `UserMemory` exists and has data at `safeAddress`
-    if (!UserMemory || !(safeAddress in UserMemory) || typeof UserMemory[safeAddress] === 'undefined') {
-        console.error(`❌ Error: UserMemory at address 0x${hexAddress} is undefined.`);
-        return;
+    dynamicMemoryDisplay.innerHTML = "";
+
+    let highlightedRowId = null;
+    for (let i = 0; i <= lastVisible; i += 4) {
+        const chunk = [];
+        for (let j = 0; j < 4 && i + j <= lastVisible; j++) {
+            const addr = i + j;
+            chunk.push({ addr, val: UserMemory[addr] & 0xFFFF });
+        }
+        const addrText = chunk.map(item => item.addr.toString(16).toUpperCase().padStart(4, "0")).join(", ");
+        const valText = chunk.map(item => {
+            const cls = explicitUserMemoryAddresses.has(item.addr) ? "user-memory-val-explicit" : "user-memory-val-gap";
+            const val = item.val.toString(16).toUpperCase().padStart(4, "0");
+            return `<span class="${cls}">${val}</span>`;
+        }).join(", ");
+
+        const row = document.createElement("div");
+        row.id = `userMemory-row-${Math.floor(i / 4)}`;
+        row.className = "user-memory-row";
+        row.innerHTML = `<span class="user-memory-addr-group">${addrText}</span><span class="user-memory-val-group">${valText}</span>`;
+        dynamicMemoryDisplay.appendChild(row);
+
+        if (chunk.some(item => item.addr === safeAddress)) highlightedRowId = row.id;
     }
 
-    const value = UserMemory[safeAddress]; // Now safely defined
-    console.log("✅ Debug: UserMemory value at address", hexAddress, "=", value);
-
-    // Ensure value is a valid number before converting
-    if (typeof value !== 'number' || isNaN(value)) {
-        console.error("❌ Error: Value at UserMemory[", safeAddress, "] is not a valid number:", value);
-        return;
-    }
-
-    const hexValue = `0x${value.toString(16).toUpperCase()}`;
-
-    // Check if the memory entry already exists
-    let existingElement = document.getElementById(`userMemory-${hexAddress}`);
-
-    if (existingElement) {
-        existingElement.innerHTML = `0x${hexAddress}: ${hexValue} (${value})`;
-    } else {
-        const newEntry = document.createElement('div');
-        newEntry.id = `userMemory-${hexAddress}`;
-        newEntry.className = 'user-memory-item';
-        newEntry.innerHTML = `0x${hexAddress}: ${hexValue} (${value})`;
-        dynamicMemoryDisplay.appendChild(newEntry);
-    }
-
-    // Flash the last updated memory entry
-    flashElement(`userMemory-${hexAddress}`);
+    if (highlightedRowId) flashElement(highlightedRowId);
 }
 
 // BRA condition codes: B000=always, B100=Z, B101=C, B110=V, B111=N
@@ -485,16 +479,113 @@ function updateSourceDisplay() {
 }
 
 function buildProgramDisplayHtml() {
+    const toHexWord = (w) => `0x${(w & 0xFFFF).toString(16).toUpperCase().padStart(4, "0")}`;
+    const OP5_ALU3 = { XOR: 0b00001, OR: 0b00010, AND: 0b00011, SBB: 0b10110, ADC: 0b10111 };
+    const OP5_ROTN = { NOT: 0b00000, ROL: 0b10100, ROR: 0b10101 };
+    const OP5_JUMP = { JZ: 0b01100, JC: 0b01101, JMP: 0b11110 };
+    function encodeInstructionWord(pc, op, args) {
+        function encALU3(code, rd, rs, rt) {
+            let w = (code << 11);
+            w |= ((rd >> 3) & 1) << 15;
+            w |= ((rs >> 3) & 1) << 14;
+            w |= ((rt >> 3) & 1) << 13;
+            w |= ((rd & 0b111) << 8);
+            w |= ((rs & 0b111) << 3);
+            w |= (rt & 0b111);
+            return w;
+        }
+        function encUnary(code, rd, rs) {
+            let w = (code << 11);
+            w |= (rd & 0b111) << 8;
+            w |= ((rd >> 3) & 1) << 7;
+            w |= (rs & 0xf) << 3;
+            return w;
+        }
+        function encSTO(rs, rt) {
+            let w = (0b01010 << 11);
+            w |= ((rs >> 3) & 1) << 7;
+            w |= ((rt >> 3) & 1) << 6;
+            w |= (rs & 0b111) << 3;
+            w |= (rt & 0b111);
+            return w;
+        }
+        function encLDD(rd, rs) {
+            let w = (0b01011 << 11);
+            w |= (rd & 0b111) << 8;
+            w |= ((rd >> 3) & 1) << 7;
+            w |= (rs & 0xf) << 3;
+            return w;
+        }
+        function encLD(isHigh, rd, imm8) {
+            const op5 = isHigh ? 0b01001 : 0b01000;
+            let w = (op5 << 11);
+            w |= (rd & 0b111) << 8;
+            w |= (imm8 & 0xff);
+            return w;
+        }
+        function encAbsJump(code, P) {
+            return (code << 11) | (P & 0x7ff);
+        }
+        function encBRA(cond3, target) {
+            const O = (target - pc) & 0xff;
+            return (0b11111 << 11) | ((cond3 & 0x7) << 8) | O;
+        }
+
+        switch (op) {
+            case "XOR": case "OR": case "AND": case "SBB": case "ADC":
+                return encALU3(OP5_ALU3[op], args[0], args[1], args[2]);
+            case "NOT": case "ROL": case "ROR": {
+                const rd = args[0];
+                const rs = args.length > 1 ? args[1] : rd;
+                return encUnary(OP5_ROTN[op], rd, rs);
+            }
+            case "STO":
+            case "STR":
+                return encSTO(args[0], args[1]);
+            case "LDD":
+                return encLDD(args[0], args[1]);
+            case "LDL":
+                return encLD(false, args[0], args[1] & 0xff);
+            case "LDH":
+                return encLD(true, args[0], args[1] & 0xff);
+            case "JZ": case "JC": case "JMP":
+                return encAbsJump(OP5_JUMP[op], args[0]);
+            case "BRA":
+                return encBRA(args[0], args[1]);
+            case "HLT":
+                return 0b11111 << 11;
+            default:
+                return null;
+        }
+    }
+
     const lines = [];
+    lines.push(
+        `<div class="memory-program-header">` +
+            `<span>Address</span>` +
+            `<span>Machine Code</span>` +
+            `<span>Instruction</span>` +
+        `</div>`
+    );
     for (let i = 0; i < program.length; i++) {
         const instruction = program[i];
         const address = i.toString(16).padStart(4, '0').toUpperCase();
-        const argsHex = instruction?.args.map(arg => `0x${arg.toString(16).toUpperCase()}`).join(', ') || '';
-        const argsDec = instruction?.args.join(', ') || '';
-        const prefix = (i === instructionPointer) ? '[IP] ' : '';
-        const line = `${prefix}${address}: ${instruction?.op || ''} ${argsHex} (${argsDec})`;
+        const args = Array.isArray(instruction?.args) ? instruction.args : [];
+        const argsHex = args.map(arg => typeof arg === "number" ? `0x${arg.toString(16).toUpperCase()}` : String(arg)).join(', ');
+        const argsDec = args.map(arg => String(arg)).join(', ');
+        const op = instruction?.op || '';
+        const line = `${op}${argsHex ? ` ${argsHex}` : ''}${argsDec ? ` (${argsDec})` : ''}`;
+        const encodedWord = encodeInstructionWord(i, op, args);
+        const machineCode = encodedWord == null ? "--" : toHexWord(encodedWord);
         const isIp = (i === instructionPointer);
-        lines.push(`<div class="memory-program-line${isIp ? ' ip-line-highlight' : ''}">${escapeHtml(line)}</div>`);
+        const addressCell = `${address}${isIp ? " [IP]" : ""}`;
+        lines.push(
+            `<div class="memory-program-line${isIp ? ' ip-line-highlight' : ''}">` +
+                `<span class="memory-program-address">${escapeHtml(addressCell)}</span>` +
+                `<span class="memory-program-machine">${machineCode}</span>` +
+                `<span class="memory-program-body">${escapeHtml(line)}</span>` +
+            `</div>`
+        );
     }
     return lines.join('');
 }

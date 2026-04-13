@@ -5,7 +5,7 @@
     tab: {
       originalCode: "Originalcode",
       dealiasCode: "De-Alias-Code",
-      inMemoryData: "Im Speicher (Daten)",
+      inMemoryData: "Programmspeicher",
       machineCode: "Maschinencode",
       samplePrograms: "Beispielprogramme",
       instructionSet: "Befehlssatz",
@@ -19,8 +19,8 @@
     },
     btn: {
       loadASM: "ASM laden",
-      convert: "Konvertieren",
-      converted: " Konvertiert ",
+      convert: "Code assemblieren",
+      converted: " Code assembliert ",
       runNext: "Nächster Schritt",
       runAll: "Alles ausführen",
       reRunNext: "Erneut nächster",
@@ -31,18 +31,19 @@
       importMemory: "Speicher importieren",
       exportMemory: "Speicher exportieren",
       add: "Hinzufügen",
+      set: "Setzen",
       copy: "Kopieren",
       download: "Herunterladen"
     },
     speed: { label: "Geschwindigkeit" },
     status: { ip: "IP" },
     flag: {
-      cf: "CF (Übertragsflag)",
-      zf: "ZF (Nullflag)",
-      of: "OF (Überlaufflag)",
-      nf: "NF (Vorzeichenflag)"
+      cf: "CF (Übertrags-Flag)",
+      zf: "ZF (Null-Flag)",
+      of: "OF (Überlauf-Flag)",
+      nf: "NF (Negativ-Flag)"
     },
-    card: { userMemory: "Benutzerspeicher" },
+    card: { userMemory: "Datenspeicher" },
     instr: {
       syntax: "Syntax",
       description: "Beschreibung",
@@ -124,7 +125,8 @@
     },
     aliasDesc: {
       CLR_C: "Übertragsflag löschen. ROR auf R0 (immer 0): Bit 0 = 0 rotiert in CF, also CF = 0. Vor ADC/SBB verwenden wenn CF = 0.",
-      SET_C: "Übertragsflag setzen. Berechnet 0 − 1 − CF_prev = Borrow, also CF = 1. R0-Schreibzugriff wird verworfen.",
+      SET_C: "CF auf 1 setzen (allgemein). Umsetzung mit ROR auf R1 (R1 ist konstant 0x0001, daher rotiert Bit0 immer als 1 in CF). Vor ADC verwenden, wenn explizit ein +1 Carry-In gewünscht ist.",
+      SET_Borrow: "Borrow-Zustand für Subtraktion setzen (CF = 1 in diesem Simulator). Vor SBB verwenden, wenn bewusst eine zusätzliche Borrow-1 subtrahiert werden soll.",
       SET_Z: "Nullflag setzen. Berechnet 0 − 0 − 0 = 0 → ZF = 1. R0-Schreibzugriff wird verworfen.",
       CLR_ZNV: "Zero, Negative und Overflow in einem Befehl löschen. 1 OR 1 = 1 ≠ 0 → ZF = 0.",
       SET_N: "Vorzeichenflag setzen. NOT(R0) = NOT(0) = 0xFFFF. Bit 15 = 1 → NF = 1.",
