@@ -88,6 +88,38 @@ function disableConvertButton() {
   // Do not flash RUN_NEXT so it stays full brightness after Convert
 }
 
+function requireReconvertAfterAsmChange() {
+  const btnConvert = document.getElementById("Convert");
+  const btnRunNext = document.getElementById("RUN_NEXT");
+  const btnRunAll = document.getElementById("RUN_ALL");
+  const btnReset = document.getElementById("RESET");
+  if (!btnConvert) return;
+
+  const hadRunnableProgram =
+    btnConvert.style.display === "none" ||
+    (btnRunNext && btnRunNext.style.display !== "none") ||
+    (btnRunAll && btnRunAll.style.display !== "none");
+  if (!hadRunnableProgram) return;
+
+  // Stop any active loop so old code cannot continue running.
+  if (typeof window.isRunAllActive === "function" && window.isRunAllActive()) {
+    if (typeof window.pauseRunAll === "function") window.pauseRunAll();
+  }
+
+  btnConvert.style.display = "inline-block";
+  btnConvert.disabled = false;
+  btnConvert.innerText = t("btn.convert");
+
+  if (btnRunNext) btnRunNext.style.display = "none";
+  if (btnRunAll) btnRunAll.style.display = "none";
+  if (btnReset) btnReset.style.display = "none";
+
+  if (typeof window.resetRunButtonLabels === "function") window.resetRunButtonLabels();
+
+  const sourceIndicator = document.getElementById("sourceLineIndicator");
+  if (sourceIndicator) sourceIndicator.classList.add("hidden");
+}
+
 /* -----------------------------
    Tiny helpers
 --------------------------------*/
@@ -454,6 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       writeAsm(e.target.result);
+      requireReconvertAfterAsmChange();
       const tabOriginalCode = $("tabOriginalCode");
       const tabDealiasCode  = $("tabDealiasCode");
       const panelOriginal   = $("inputOriginalPanel");
@@ -469,6 +502,11 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     reader.readAsText(file);
     loadASMFile.value = ""; // reset so the same file can be re-loaded
+  });
+
+  // Any edit in the ASM input requires converting again.
+  getAsmEl()?.addEventListener("input", () => {
+    requireReconvertAfterAsmChange();
   });
 
   // Import / Export dynamic memory (.txt, one line per address:value in hex)
@@ -715,6 +753,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!Array.isArray(programs) || !programs[parseInt(index, 10)]) return;
       const code = programs[parseInt(index, 10)].code?.trim() ?? "";
       writeAsm(code);
+      requireReconvertAfterAsmChange();
       setLeftColumnMode("code");
       tabOriginalCode?.classList.add("active");
       tabDealiasCode?.classList.remove("active");
@@ -731,6 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const current = readAsm();
     const newContent = current.trimEnd() ? current + "\n" + line : (current + line);
     writeAsm(newContent);
+    requireReconvertAfterAsmChange();
     setLeftColumnMode("code");
     tabOriginalCode?.classList.add("active");
     tabDealiasCode?.classList.remove("active");
